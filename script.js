@@ -1,5 +1,8 @@
 
-const $ = (selector) => document.querySelector(selector);
+const SUPABASE_URL = "https://jxqkcnvjhfldlnxhfazd.supabase.co";
+const SUPABASE_KEY = "sb_publishable_VYBqbTpDINn9EAw9wxb02A_JrU9GRr_";
+
+const $ = (s) => document.querySelector(s);
 
 const list = $("#announcementList");
 const searchInput = $("#searchInput");
@@ -13,53 +16,40 @@ const starterPosts = [
     id: 1,
     title: "MaktabHub platformasiga xush kelibsiz!",
     category: "Yangilik",
-    text: "Bu yerda maktabimiz yangiliklari, tadbirlar va foydali e'lonlar joylashtiriladi. Platformamizni birgalikda rivojlantiramiz!",
+    text: "Bu yerda maktabimiz yangiliklari, tadbirlar va foydali e'lonlar joylashtiriladi.",
     author: "MaktabHub jamoasi",
-    date: "2026-10-09"
-  },
-  {
-    id: 2,
-    title: "Sport tadbirlariga tayyorgarlik",
-    category: "Tadbir",
-    text: "Maktabimizda sport va sog'lom turmush tarziga bag'ishlangan tadbirlar bo'lib o'tadi. Batafsil ma'lumotlar shu yerda e'lon qilinadi.",
-    author: "Jismoniy tarbiya bo'limi",
-    date: "2026-10-09"
-  },
-  {
-    id: 3,
-    title: "Maktabni obod saqlaylik",
-    category: "Muhim",
-    text: "Maktabimizdagi sinfxonalar, kutubxona va umumiy joylarni ozoda saqlashga barchamiz hissa qo'shaylik.",
-    author: "Maktab ma'muriyati",
     date: "2026-10-09"
   }
 ];
 
-function readStorage(key, fallback) {
-  try {
-    const value = localStorage.getItem(key);
-    return value === null ? fallback : JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-}
+let posts = [];
+let darkMode = false;
 
-let posts = readStorage("makTabHubPosts", starterPosts);
-if (!Array.isArray(posts)) posts = starterPosts;
+async function api(path, options = {}) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
 
-function savePosts() {
-  try {
-    localStorage.setItem("makTabHubPosts", JSON.stringify(posts));
-  } catch {
-    alert("Ma'lumotni saqlab bo'lmadi. Brauzer xotirasini tekshiring.");
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `HTTP ${response.status}`);
   }
+
+  if (response.status === 204) return null;
+  return response.json();
 }
 
 function safeText(tag, className, value) {
-  const element = document.createElement(tag);
-  if (className) element.className = className;
-  element.textContent = value ?? "";
-  return element;
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  el.textContent = value ?? "";
+  return el;
 }
 
 function makePostCard(post) {
@@ -70,11 +60,12 @@ function makePostCard(post) {
   const date = safeText("span", "post-date", post.date || "");
   top.append(category, date);
 
-  const title = safeText("h3", "", post.title);
-  const description = safeText("p", "post-text", post.text);
-  const author = safeText("div", "post-author", "✍️ " + post.author);
-
-  card.append(top, title, description, author);
+  card.append(
+    top,
+    safeText("h3", "", post.title),
+    safeText("p", "post-text", post.text),
+    safeText("div", "post-author", "✍️ " + post.author)
+  );
   return card;
 }
 
@@ -85,23 +76,34 @@ function renderPosts() {
   const filtered = posts.filter((post) => {
     const content = `${post.title} ${post.text} ${post.author}`
       .toLocaleLowerCase("uz");
-
     return content.includes(query) &&
       (category === "Barchasi" || post.category === category);
   });
 
   list.replaceChildren(...filtered.map(makePostCard));
-  emptyMessage.hidden = filtered.length !== 0;
+  emptyMessage.hidden = filtered.length > 0;
 
   $("#announcementCount").textContent = posts.length;
   $("#eventCount").textContent =
-    posts.filter((post) => post.category === "Tadbir").length;
+    posts.filter(p => p.category === "Tadbir").length;
   $("#itemCount").textContent =
-    posts.filter((post) => post.category === "Buyum").length;
+    posts.filter(p => p.category === "Buyum").length;
+}
+
+async function loadPosts() {
+  try {
+    posts = await api("announcements?select=*&order=id.desc");
+    renderPosts();
+  } catch (error) {
+    console.error("E'lonlarni yuklashda xato:", error);
+    list.replaceChildren(
+      safeText("p", "empty-message",
+        "E'lonlarni yuklab bo'lmadi. Supabase sozlamalarini tekshiring.")
+    );
+  }
 }
 
 $("#year").textContent = new Date().getFullYear();
-
 searchInput.addEventListener("input", renderPosts);
 categoryFilter.addEventListener("change", renderPosts);
 
@@ -110,11 +112,11 @@ $("#addBtn").addEventListener("click", () => {
   announcementDialog.showModal();
 });
 
-$("#closeDialog").addEventListener("click", () => {
-  announcementDialog.close();
-});
+$("#closeDialog").addEventListener("click", () =>
+  announcementDialog.close()
+);
 
-$("#announcementForm").addEventListener("submit", (event) => {
+$("#announcementForm").addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const title = $("#postTitle").value.trim();
@@ -127,43 +129,40 @@ $("#announcementForm").addEventListener("submit", (event) => {
     return;
   }
 
-  const post = {
-    id: Date.now(),
-    title,
-    category,
-    text,
-    author,
-    date: new Date().toLocaleDateString("sv-SE")
-  };
+  try {
+    await api("announcements", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ title, text, author, category })
+    });
 
-  posts.unshift(post);
-  savePosts();
-  searchInput.value = "";
-  categoryFilter.value = "Barchasi";
-  renderPosts();
-  announcementDialog.close();
+    await loadPosts();
+    searchInput.value = "";
+    categoryFilter.value = "Barchasi";
+    renderPosts();
+    announcementDialog.close();
+    alert("E'lon bazaga saqlandi!");
+  } catch (error) {
+    console.error(error);
+    alert("E'lon saqlanmadi. Supabase sozlamalarini tekshiring.");
+  }
 });
 
 function applyTheme(dark) {
   document.body.classList.toggle("dark", dark);
   $("#themeBtn").textContent = dark ? "☀️" : "🌙";
-  $("#themeBtn").setAttribute(
-    "aria-label",
-    dark ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"
-  );
 }
 
-let darkMode = readStorage("makTabHubDark", false);
+try {
+  darkMode = JSON.parse(localStorage.getItem("makTabHubDark")) || false;
+} catch {}
+
 applyTheme(darkMode);
 
 $("#themeBtn").addEventListener("click", () => {
   darkMode = !darkMode;
   applyTheme(darkMode);
-  try {
-    localStorage.setItem("makTabHubDark", JSON.stringify(darkMode));
-  } catch {
-    // Rejim ushbu sahifa ochiq turgan paytda ham ishlaydi.
-  }
+  localStorage.setItem("makTabHubDark", JSON.stringify(darkMode));
 });
 
 $("#suggestionBtn").addEventListener("click", () => {
@@ -171,32 +170,26 @@ $("#suggestionBtn").addEventListener("click", () => {
   suggestionDialog.showModal();
 });
 
-$("#closeSuggestion").addEventListener("click", () => {
-  suggestionDialog.close();
-});
+$("#closeSuggestion").addEventListener("click", () =>
+  suggestionDialog.close()
+);
 
 $("#suggestionForm").addEventListener("submit", (event) => {
   event.preventDefault();
-
   const suggestion = $("#suggestionText").value.trim();
   if (!suggestion) return;
 
-  const suggestions = readStorage("makTabHubSuggestions", []);
-  suggestions.push({
-    text: suggestion,
-    date: new Date().toISOString()
-  });
+  const key = "makTabHubSuggestions";
+  let suggestions = [];
 
   try {
-    localStorage.setItem(
-      "makTabHubSuggestions",
-      JSON.stringify(suggestions)
-    );
-    alert("Taklif ushbu brauzerda saqlandi. Rahmat!");
-    suggestionDialog.close();
-  } catch {
-    alert("Taklifni saqlab bo'lmadi.");
-  }
+    suggestions = JSON.parse(localStorage.getItem(key)) || [];
+  } catch {}
+
+  suggestions.push({ text: suggestion, date: new Date().toISOString() });
+  localStorage.setItem(key, JSON.stringify(suggestions));
+  alert("Taklif ushbu brauzerda saqlandi. Rahmat!");
+  suggestionDialog.close();
 });
 
-renderPosts();
+loadPosts();
