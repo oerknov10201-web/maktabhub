@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10213b">
+  <title>MaktabHub — Maktab hamjamiyati</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="brand" href="#">
+      <span class="brand-icon">M</span>
+      <span>Maktab<span class="brand-light">Hub</span>
+        <small>Maktab hamjamiyati</small>
+      </span>
+    </a>
+    <button id="themeBtn" class="theme-btn" aria-label="Rang rejimini almashtirish">🌙</button>
+  </header>
+
+  <main class="container">
+    <section class="welcome">
+      <div>
+        <p class="eyebrow">BILIM • HAMKORLIK • KELAJAK</p>
+        <h1>Maktabimiz hayoti<br><span>bir joyda.</span></h1>
+        <p class="welcome-text">
+          Yangiliklar, tadbirlar va maktab hamjamiyati
+          uchun yagona maskan.
+        </p>
+        <a class="primary-btn" href="#announcements">E'lonlarni ko'rish <span>→</span></a>
+      </div>
+      <div class="welcome-art" aria-hidden="true">
+        <div class="art-circle">🎓</div>
+        <span class="floating f1">📚</span>
+        <span class="floating f2">✨</span>
+        <span class="floating f3">✏️</span>
+      </div>
+    </section>
+
+    <section class="quick-stats">
+      <article class="stat-card">
+        <span class="stat-icon purple">📢</span>
+        <div><p>E'lonlar</p><h2 id="announcementCount">0</h2></div>
+      </article>
+      <article class="stat-card">
+        <span class="stat-icon green">📅</span>
+        <div><p>Tadbirlar</p><h2 id="eventCount">0</h2></div>
+      </article>
+      <article class="stat-card">
+        <span class="stat-icon orange">🎒</span>
+        <div><p>Buyumlar</p><h2 id="itemCount">0</h2></div>
+      </article>
+    </section>
+
+    <section class="section" id="announcements">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">MAKTAB HAYOTI</p>
+          <h2>So'nggi e'lonlar</h2>
+        </div>
+        <button class="primary-btn" id="addBtn">＋ E'lon qo'shish</button>
+      </div>
+
+      <div class="toolbar">
+        <label class="search-box">
+          <span>⌕</span>
+          <input id="searchInput" type="search"
+                 placeholder="E'lonlarni qidirish..."
+                 aria-label="E'lonlarni qidirish">
+        </label>
+        <select id="categoryFilter" aria-label="E'lon turini tanlash">
+          <option value="Barchasi">Barcha e'lonlar</option>
+          <option value="Yangilik">Yangiliklar</option>
+          <option value="Tadbir">Tadbirlar</option>
+          <option value="Muhim">Muhim xabarlar</option>
+          <option value="Buyum">Topilgan buyumlar</option>
+        </select>
+      </div>
+
+      <div id="announcementList" class="announcement-grid"></div>
+      <p id="emptyMessage" class="empty-message" hidden>
+        Hozircha e'lon topilmadi. Qidiruvni o'zgartirib ko'ring.
+      </p>
+    </section>
+
+    <section class="community">
+      <div>
+        <p class="eyebrow">BIZNING HAMJAMIYAT</p>
+        <h2>Maktabni birgalikda yaxshilaymiz!</h2>
+        <p>Taklifingiz bormi? Fikringizni biz bilan bo'lishing.</p>
+      </div>
+      <button class="secondary-btn" id="suggestionBtn">💬 Taklif yuborish</button>
+    </section>
+  </main>
+
+  <footer>
+    <a class="footer-brand" href="#">MaktabHub</a>
+    <p>Bilim va hamkorlik sari birgalikda.</p>
+    <small>© <span id="year"></span> MaktabHub</small>
+  </footer>
+
+  <!-- E'lon qo'shish oynasi -->
+  <dialog id="announcementDialog">
+    <form id="announcementForm" class="dialog-form">
+      <div class="dialog-heading">
+        <h2>Yangi e'lon</h2>
+        <button type="button" class="close-btn" id="closeDialog"
+                aria-label="Oynani yopish">✕</button>
+      </div>
+
+      <label for="postTitle">E'lon sarlavhasi</label>
+      <input id="postTitle" maxlength="100" required
+             placeholder="Masalan: Sport musobaqasi">
+
+      <label for="postCategory">E'lon turi</label>
+      <select id="postCategory">
+        <option value="Yangilik">Yangilik</option>
+        <option value="Tadbir">Tadbir</option>
+        <option value="Muhim">Muhim xabar</option>
+        <option value="Buyum">Topilgan buyum</option>
+      </select>
+
+      <label for="postText">Batafsil ma'lumot</label>
+      <textarea id="postText" rows="4" maxlength="1000" required
+                placeholder="E'lon haqida yozing..."></textarea>
+
+      <label for="postAuthor">Kim joylayapti?</label>
+      <input id="postAuthor" maxlength="60" required
+             placeholder="Masalan: 9-A sinf o'quvchisi">
+
+      <button class="primary-btn submit-btn" type="submit">E'lonni joylash</button>
+      <p class="form-note">Hozircha e'lonlar faqat ushbu brauzerda saqlanadi.</p>
+    </form>
+  </dialog>
+
+  <!-- Taklif yuborish oynasi -->
+  <dialog id="suggestionDialog">
+    <form id="suggestionForm" class="dialog-form">
+      <div class="dialog-heading">
+        <h2>Takliflar qutisi</h2>
+        <button type="button" class="close-btn" id="closeSuggestion"
+                aria-label="Oynani yopish">✕</button>
+      </div>
+      <label for="suggestionText">Taklifingiz</label>
+      <textarea id="suggestionText" rows="5" maxlength="1000" required
+                placeholder="Maktabimizda nimani yaxshilash mumkin?"></textarea>
+      <button class="primary-btn submit-btn" type="submit">Taklifni saqlash</button>
+      <p class="form-note">Demo rejimida taklif faqat shu brauzerda saqlanadi.</p>
+    </form>
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>
